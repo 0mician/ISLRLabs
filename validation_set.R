@@ -58,7 +58,7 @@ vs.mse.melt$PolyDegree <- as.factor(c(rep(seq(1,10,1),15)))
 colnames(vs.mse.melt) <- c("Split", "TestMSE", "PolynomialDegree")
 ggplot(vs.mse.melt, aes(x=PolynomialDegree, y=TestMSE, group=Split)) +
     geom_line(aes(colour=Split)) + ylim(10,35) +
-    xlab("Flexibility") + ylab("MSE") +
+    xlab("Flexibility (polynomial degree)") + ylab("Test MSE") +
     ggtitle("Test MSE for different validation set")
-
+ggsave("validation_set.png")
 

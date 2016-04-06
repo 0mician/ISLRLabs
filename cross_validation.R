@@ -12,6 +12,8 @@ library(boot) #cv.glm()
 ##########################
 
 # Note: using glm here to create lm (no family specified), gives access to cv.glm()
+# Note: for lm, could use analytic approach to compute Test MSE (but cv.glm
+# doesn't use it)
 
 glm.fit <- glm(mpg~horsepower, data=Auto)
 coef(glm.fit) # identical to a lm.fit

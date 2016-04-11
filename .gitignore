@@ -23,3 +23,9 @@ emacs-config.el
 .RData
 .Rhistory
 
+
+# Latex
+resampling.pyg
+resampling.tex
+title.aux
+

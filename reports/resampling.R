@@ -73,8 +73,6 @@ boot(Default, boot.fn, 50)
 
 ## a
 set.seed(1)
-y <- rnorm(100)
-x <- rnorm(100)
 y <- x - 2 * x^2 + rnorm(100)
 
 ## b

@@ -173,8 +173,7 @@ The estimated standard errors are in both cases similar.
 #+BEGIN_SRC R
 ## a
 set.seed(1)
-y <- rnorm(100)
-x <- rnorm(100)
+
 y <- x - 2 * x^2 + rnorm(100)
 
 ## b

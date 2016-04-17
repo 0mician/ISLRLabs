@@ -1,0 +1,72 @@
+#+TITLE: Statistical methods for bioinformatics \linebreak Model selection and regularization
+#+AUTHOR: Cedric Lood
+#+LATEX_CLASS: article
+#+LATEX_CLASS_OPTIONS: [11pt, a4paper]
+#+LATEX_HEADER: \usepackage[utf8]{inputenc}
+#+LATEX_HEADER: \usepackage[english]{babel}
+#+LATEX_HEADER: \usepackage{graphicx}
+#+LATEX_HEADER: \usepackage[left=2.35cm, right=3.35cm, top=3.35cm, bottom=3.0cm]{geometry}
+#+LATEX_HEADER: \usepackage{titling}
+
+#+BEGIN_LaTeX
+\graphicspath{ {figures/} }
+\setlength{\droptitle}{-5em} 
+\setlength{\parindent}{0cm}
+#+END_LaTeX
+#+OPTIONS: LaTeX:dvipng, toc:nil
+
+* Conceptual exercises
+** Question 5
+*** part a
+We want to minimize the ridge regression defined by $RSS + \lambda \sum\limits_{i=1}^p \hat{\beta}_i^2$
+
+- $min\Big[\sum\limits_{i=1}^n {(y_i - \hat{\beta}_0 - \sum\limits_{j=1}^p {\hat{\beta}_jx_j} )^2} + \lambda \sum\limits_{i=1}^p \hat{\beta}_i^2\Big]$
+- we have as constraints that $\hat{\beta}_0 = 0, p=2$, hence we can
+  reformulate the optimisation as $min\Big[\sum\limits_{i=1}^n {(y_i - \sum\limits_{j=1}^2 {\hat{\beta}_jx_j} )^2} + \lambda \sum\limits_{i=1}^2 \hat{\beta}_i^2\Big]$
+- which can be expanded into $min\Big[ (y_1 - \hat{\beta}_1x_{11} - \hat{\beta}_2x_{12})^2 + (y_2 - \hat{\beta}_1x_{21} - \hat{\beta}_2x_{22})^2 + \lambda (\hat{\beta}_1^2 + \hat{\beta}_2^2)\Big]$
+
+*** part b
+For this, we can simply take the derivatives of the ridge regression
+with respect to $\hat{\beta}_1$ and $\hat{\beta}_2$.
+
+*** part c
+Very similar to part a, the only difference between the lasso method
+and the ridge regression lies with the norm taken of the
+parameters. Lasso used a first-order norm (L1):
+
+$min\Big[ (y_1 - \hat{\beta}_1x_{11} - \hat{\beta}_2x_{12})^2 + (y_2 - \hat{\beta}_1x_{21} - \hat{\beta}_2x_{22})^2 + \lambda (|\hat{\beta}_1| + |\hat{\beta}_2|)\Big]$
+
+
+* Applied exercises
+** Question 8
+#+BEGIN_SRC R
+library(ggplot2)
+
+## part a: simulated dataset creation
+set.seed(1)
+x <- rnorm(100)
+noise <- rnorm(100)
+
+## part b: response vector with given model y = 1x^3 - 2x^2 + 3x + 5
+y <- x^3 - 2*x^2 + 3*x + 5
+qplot(x,y)
+ggsave("fun.pdf")
+#+END_SRC
+
+#+BEGIN_LaTeX
+\includegraphics[scale=0.5]{fun.pdf}
+#+END_LaTeX
+
+** Question 10 
+
+** templates :noexport:
+#+BEGIN_SRC R
+#+END_SRC
+
+#+BEGIN_LaTeX
+%\includegraphics[scale=0.5]{5_8_b_qplot.pdf}
+#+END_LaTeX
+
+#+BEGIN_EXAMPLE
+#+END_EXAMPLE
+

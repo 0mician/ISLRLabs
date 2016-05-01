@@ -1,0 +1,295 @@
+#+TITLE: Statistical methods for bioinformatics \linebreak Gene expression: case study (de Vijver et al.)
+#+AUTHOR: Cedric Lood
+#+LATEX_CLASS: article
+#+LATEX_CLASS_OPTIONS: [11pt, a4paper]
+#+LATEX_HEADER: \usepackage[utf8]{inputenc}
+#+LATEX_HEADER: \usepackage[english]{babel}
+#+LATEX_HEADER: \usepackage{graphicx}
+#+LATEX_HEADER: \usepackage[left=2.35cm, right=3.35cm, top=3.35cm, bottom=3.0cm]{geometry}
+#+LATEX_HEADER: \usepackage{titling}
+
+#+BEGIN_LaTeX
+\graphicspath{ {figures/} }
+\setlength{\droptitle}{-5em} 
+\setlength{\parindent}{0cm}
+#+END_LaTeX
+#+OPTIONS: LaTeX:dvipng, toc:nil
+
+* Dataset exploration
+The dataset under consideration consists of values of about 5000 gene
+expressions (obtained through a microarray technology) for 188
+patients. Some of the patients developed distant metastases while some
+did not, and the goal is to see if we can use the information from the
+levels of gene expressions to predict the metatstases phenotype.
+
+One thing to note from the dimensions of the dataset is that we are
+falling in the case of so-called high dimensionality with a number of
+observations $n$ that is over an order of magnitude lower than that of
+predictors $p$. Among other things, this prevents the use of least
+square methods, common in linear models. 
+
+One of the risk when trying to come up with a gene panel that would
+predict the evolution of the cancer is that high levels of colinearity
+between the predictors likely exists. This renders the set of gene
+selected contingent on the particular analysis performed.
+
+* Predictive potential
+Here are the libraries I used for this part, and the dataset:
+#+BEGIN_SRC R
+library(glmnet)
+library(polycor)
+library(ROCR)
+library(leaps)
+
+load("VIJVER.Rdata")
+#+END_SRC
+
+As a first approach, I tried to search systematically through the
+dataset for variables that would correlate with the binary outcome
+with a correlation score above 0.45 (for a score of 0.5, the procedure
+returns only 2 results).
+
+#+BEGIN_SRC R
+## Systematic identification of correlated genex/outcome
+genes <- character()
+i <- 1
+for(gene in names(data)[2:length(data)]) {
+    if(abs(hetcor(data$meta, data[gene])$correlations[1,2]) > 0.45){
+        genes[i] <- gene
+        i <- i + 1
+    }
+}
+#+END_SRC
+
+Here is the list of genes returned:
+
+#+BEGIN_EXAMPLE
+ [1] "NM_000987"      "NM_003258"      "NM_003295"      "NM_004119"     
+ [5] "NM_004203"      "NM_002808"      "NM_002811"      "NM_012291"     
+ [9] "NM_013277"      "NM_003981"      "NM_004701"      "M96577"        
+[13] "NM_007019"      "NM_007057"      "NM_007267"      "NM_007274"     
+[17] "NM_006607"      "NM_016185"      "Contig48913_RC" "NM_018410"     
+[21] "NM_001168"      "NM_002106"  
+#+END_EXAMPLE
+
+Which I then used to build a logistic model, with a best subset
+selection approach. For the selection, I used the BIC metric to
+select the subset of variable (see graphic)
+
+#+BEGIN_SRC R
+## Use the identified variables to create a model
+regfit.full <- regsubsets(data.meta~., reduced.data, nvmax = length(genes))
+reg.summary <- summary(regfit.full)
+
+## fitting model with the 4 params
+reg <- glm(meta~NM_000987+NM_003258+NM_004119+NM_002811, data=data,family = binomial(link=logit))
+summary(reg)
+reg.probs <- predict(reg, type="response")
+contrasts(data$meta)
+table(data$meta, fitted(reg)>0.5)
+predict <- fitted(reg)
+pred <- prediction(predict, data$meta)
+perf <- performance(pred, measure="tpr", x.measure = "fpr")
+performance(pred, measure="auc")
+
+## using bic to make a decision, n=4
+which.min(reg.summary$bic)
+coef(regfit.full,4)
+
+## plotting the results
+pdf("bic-auc.pdf", width = 16, height = 8)
+par(mfrow = c(1,2))
+plot(reg.summary$bic, ylab="bic", type="l")
+plot(perf, col="red")
+dev.off()
+#+END_SRC
+
+#+BEGIN_LaTeX
+\includegraphics[scale=0.4]{bic-auc.pdf}
+#+END_LaTeX
+
+* Collinearity structure
+Given the size and the nature of the data collected (RNA expression),
+we can certainly expect colinearity between different
+transcripts. Working with the reduced dataset of 22 transcript levels
+created above, one can alreay show multiple examples of such
+colinearity:
+
+#+BEGIN_SRC R
+pairs(reduced.data[,2:8]) # no good examples in this subset (max=0.5)
+cor(reduced.data$NM_002808,reduced.data$NM_002811)
+pairs(reduced.data[,9:16]) # good amount of corelated pairs (max=0.9)
+cor(reduced.data$NM_003981,reduced.data$NM_004701)
+#+END_SRC
+
+#+BEGIN_EXAMPLE
+> cor(reduced.data$NM_002808,reduced.data$NM_002811)
+[1] 0.5072933
+> cor(reduced.data$NM_003981,reduced.data$NM_004701)
+[1] 0.8694202
+#+END_EXAMPLE
+
+#+BEGIN_LaTeX
+\includegraphics[scale=0.4]{pairs-colinearity.pdf}
+#+END_LaTeX
+
+* Phenotype prediction
+
+
+* Applied exercises :noexport:
+** Question 5
+#+BEGIN_SRC R :tangle resampling.R
+## a
+set.seed(1)
+attach(Default)
+glm.fit.default <- glm(default~income+balance, data=Default, family = binomial)
+glm.probs <- predict(glm.fit.default, Default, type="response")
+contrasts(default)
+glm.pred <- rep("No", 10000)
+glm.pred[glm.probs>.5]="Yes"
+
+table(glm.pred, default)
+
+## b
+train <- sample(10000, 5000)
+glm.fit.vs <- glm(default~income+balance, data=Default, subset=train, family=binomial)
+glm.probs.vs <- predict(glm.fit.vs, Default, type="response")[-train]
+contrasts(default)
+glm.pred.vs <- rep("No", 10000)
+glm.pred.vs[glm.probs.vs>.5]="Yes"
+
+table(glm.pred.vs, default)
+mean(glm.pred != Default[-train, ]$default)
+
+## c
+for (i in 1:3) {
+    set.seed(i)
+    train <- sample(10000, 5000)
+    glm.fit.vs <- glm(default~income+balance, data=Default, subset=train, family=binomial)
+    glm.probs.vs <- predict(glm.fit.vs, Default, type="response")[-train]
+    glm.pred.vs <- rep("No", 10000)
+    glm.pred.vs[glm.probs.vs>.5]="Yes"
+    print(mean(glm.pred != Default[-train, ]$default))
+}
+[1] 0.0472
+[1] 0.0474
+[1] 0.0452
+
+## d
+for (i in 1:3) {
+    set.seed(i)
+    train <- sample(10000, 5000)
+    glm.fit.vs <- glm(default~income+balance+student, data=Default, subset=train, family=binomial)
+    glm.probs.vs <- predict(glm.fit.vs, Default, type="response")[-train]
+    glm.pred.vs <- rep("No", 10000)
+    glm.pred.vs[glm.probs.vs>.5]="Yes"
+    print(mean(glm.pred != Default[-train, ]$default))
+}
+[1] 0.0472
+[1] 0.0474
+[1] 0.0452
+#+END_SRC
+
+For c) and d) as can be seen from the output of the scripts (included
+above), there does not seem to be a reduction of the test error rate
+when adding the dummy $student$ variable.
+** Question 6
+#+BEGIN_SRC R
+## a
+set.seed(1)
+glm.fit <- glm(default~income+balance, data=Default, family=binomial)
+summary(glm.fit)
+
+## b
+boot.fn <- function(data, index){
+    model <- glm(default~income+balance, data=data, family=binomial, subset=index)
+    return(coef(model))
+}
+
+## c
+boot(Default, boot.fn, 50)
+#+END_SRC
+
+This is the output of the call to the summary function (a) and the
+boot function (c):
+
+#+BEGIN_EXAMPLE
+
+#### SUMMARY FUNCTION
+Call:
+glm(formula = default ~ income + balance, family = binomial, 
+    data = Default)
+
+Coefficients:
+              Estimate Std. Error z value Pr(>|z|)    
+(Intercept) -1.154e+01  4.348e-01 -26.545  < 2e-16 ***
+income       2.081e-05  4.985e-06   4.174 2.99e-05 ***
+balance      5.647e-03  2.274e-04  24.836  < 2e-16 ***
+
+#### BOOTSTRAP FUNCTION
+
+ORDINARY NONPARAMETRIC BOOTSTRAP
+
+Call:
+boot(data = Default, statistic = boot.fn, R = 50)
+
+
+Bootstrap Statistics :
+         original        bias     std. error
+t1* -1.154047e+01  1.181200e-01 4.202402e-01
+t2*  2.080898e-05 -5.466926e-08 4.542214e-06
+t3*  5.647103e-03 -6.974834e-05 2.282819e-04
+#+END_EXAMPLE
+
+The estimated standard errors are in both cases similar.
+
+** Question 8
+#+BEGIN_SRC R
+## a
+set.seed(1)
+
+y <- x - 2 * x^2 + rnorm(100)
+
+## b
+qplot(x, y)
+ggsave("qplot.pdf")
+#+END_SRC
+
+#+BEGIN_LaTeX
+\includegraphics[scale=0.5]{5_8_b_qplot.pdf}
+#+END_LaTeX
+
+#+BEGIN_SRC R
+## c
+quadratic.dataset <- data.frame(x, y)
+for (i in 1:4) {
+    glm.fit <- glm(y~poly(x,i))
+    print(cv.glm(quadratic.dataset, glm.fit)$delta)
+}
+
+[1] 5.890979 5.888812
+[1] 1.086596 1.086326
+[1] 1.102585 1.102227
+[1] 1.114772 1.114334
+
+## d
+set.seed(2)
+for (i in 1:4) {
+    glm.fit <- glm(y~poly(x,i))
+    print(cv.glm(quadratic.dataset, glm.fit)$delta)
+}
+[1] 5.890979 5.888812
+[1] 1.086596 1.086326
+[1] 1.102585 1.102227
+[1] 1.114772 1.114334
+#+END_SRC
+
+The results for c) and d) are exactly the same because the LOOCV
+proceeds by evaluating systematically all the folds by leaving out
+only one observation at each step.
+
+For e) you can see that the LOOCV test error is the lowest when using
+the quadratic model. This follows logically from the true form of the
+(artificial) hypothesis that we started with. Note that in general,
+you don't have access to the true function.
+

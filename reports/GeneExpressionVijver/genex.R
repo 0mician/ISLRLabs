@@ -4,6 +4,7 @@ library(ROCR)
 library(leaps)
 library(bestglm)
 library(ggplot2)
+library(pls)
 
 ## Data exploration
 
@@ -33,6 +34,10 @@ for(gene in genes){
 regfit.full <- regsubsets(data.meta~., reduced.data, nvmax = length(genes))
 reg.summary <- summary(regfit.full)
 
+## using bic to make a decision, n=4
+which.min(reg.summary$bic)
+coef(regfit.full,4)
+
 ## fitting model with the 4 params
 reg <- glm(meta~NM_000987+NM_003258+NM_004119+NM_002811, data=data,family = binomial(link=logit))
 summary(reg)
@@ -44,17 +49,12 @@ pred <- prediction(predict, data$meta)
 perf <- performance(pred, measure="tpr", x.measure = "fpr")
 performance(pred, measure="auc")
 
-## using bic to make a decision, n=4
-which.min(reg.summary$bic)
-coef(regfit.full,4)
-
 ## plotting the results
 pdf("bic-auc.pdf", width = 16, height = 8)
 par(mfrow = c(1,2))
 plot(reg.summary$bic, ylab="bic", type="l")
 plot(perf, col="red")
 dev.off()
-
 
 ########################################################################
 ## using CV (10-k fold) to make a decision                            ## 
@@ -138,9 +138,43 @@ cor(reduced.data$NM_003981,reduced.data$NM_004701)
 ## phenotype prediction ##
 ##########################
 
+set.seed(1)
 x <- model.matrix(meta~.,data)[,-1]
 y <- data$meta
+
+## Ridge regression with CV
 grid <- 10^seq(10,-2,length=100)
-ridge.mod <- glmnet(x,y,alpha=0,lambda=grid,family='binomial')
-dim(coef(ridge.mod))
+ridge.cv <- cv.glmnet(x,y,alpha=0, family='binomial')
+plot(ridge.cv)
+ridge.bestlam <- cv.out$lambda.min
+
+ridge.mod <-  glmnet(x,y,alpha=0,lambda=grid,family='binomial')
+ridge.pred <- predict(ridge.mod, type="response",s=ridge.bestlam, newx=x)
+table(y, ridge.pred>0.5)
+
+ridge.pred <- prediction(ridge.pred, y)
+ridge.perf <- performance(ridge.pred, measure="tpr", x.measure = "fpr")
+performance(ridge.pred, measure="auc")
+
+## Lasso
+lasso.cv <- cv.glmnet(x,y,alpha=1,lambda=grid,family='binomial')
+plot(lasso.mod)
+lasso.bestlam <- lasso.cv$lambda.min
+
+lasso.mod <- glmnet(x,y,alpha=1,lambda=grid,family='binomial')
+lasso.coef <- predict(lasso.mod, type="coefficients",s=lasso.bestlam)
+lasso.coef[lasso.coef!=0]
+lasso.pred <- predict(lasso.mod, type="response",s=lasso.bestlam, newx=x)
+table(y, lasso.pred>0.5)
+
+lasso.pred <- prediction(lasso.pred, y)
+lasso.perf <- performance(lasso.pred, measure="tpr", x.measure = "fpr")
+performance(lasso.pred, measure="auc")
+
+## plotting results of ridge and lasso (ROC)
+pdf("roc-lasso-ridge.pdf", width = 16, height = 8)
+par(mfrow = c(1,2))
+plot(ridge.perf, col="red", main="ridge regression")
+plot(lasso.perf, col="red", main="lasso")
+dev.off()
 

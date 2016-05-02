@@ -1,4 +1,4 @@
-% Created 2016-05-01 Son 22:42
+% Created 2016-05-02 Mon 21:26
 \documentclass[11pt, a4paper]{article}
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
@@ -58,8 +58,9 @@ square methods, common in linear models.
 
 One of the risk when trying to come up with a reduced gene panel that
 would predict the evolution of the cancer is that high levels of
-colinearity between the predictors likely exists. This renders the set
-of gene selected contingent on the particular dataset obtained.
+colinearity between the predictors likely exists. This renders the
+specific set of gene selected for the panel contingent on the
+particular dataset obtained, hence impeding reproducibility.
 \section{Predictive potential}
 \label{sec-2}
 
@@ -183,7 +184,9 @@ I used the ridge regression and lasso approaches to build
 classifiers. Another one was suggested - principal component
 regression - but it did not work due to the binary nature of the
 response variable. For both approaches, I used CV to determine the
-value of the hyperparameter $\lambda$
+value of the hyperparameter $\lambda$. Note that I did not perform
+cross validation to train the classifiers, but that would definitely
+be necessary to give the classifiers more credence.
 
 The ridge regression does not perform variable selection, so all the
 coefficients were present, but for lasso, only 30 predictors were kept
@@ -198,7 +201,7 @@ set.seed(1)
 x <- model.matrix(meta~.,data)[,-1]
 y <- data$meta
 
-## Ridge regression with CV
+## Ridge regression with CV for lambda
 grid <- 10^seq(10,-2,length=100)
 ridge.cv <- cv.glmnet(x,y,alpha=0, family='binomial')
 plot(ridge.cv)
@@ -212,7 +215,7 @@ ridge.pred <- prediction(ridge.pred, y)
 ridge.perf <- performance(ridge.pred, measure="tpr", x.measure = "fpr")
 performance(ridge.pred, measure="auc")
 
-## Lasso
+## Lasso with CV for lambda
 lasso.cv <- cv.glmnet(x,y,alpha=1,lambda=grid,family='binomial')
 plot(lasso.mod)
 lasso.bestlam <- lasso.cv$lambda.min

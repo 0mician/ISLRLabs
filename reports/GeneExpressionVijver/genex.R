@@ -142,7 +142,7 @@ set.seed(1)
 x <- model.matrix(meta~.,data)[,-1]
 y <- data$meta
 
-## Ridge regression with CV
+## Ridge regression with CV for lambda
 grid <- 10^seq(10,-2,length=100)
 ridge.cv <- cv.glmnet(x,y,alpha=0, family='binomial')
 plot(ridge.cv)
@@ -156,7 +156,7 @@ ridge.pred <- prediction(ridge.pred, y)
 ridge.perf <- performance(ridge.pred, measure="tpr", x.measure = "fpr")
 performance(ridge.pred, measure="auc")
 
-## Lasso
+## Lasso with CV for lambda
 lasso.cv <- cv.glmnet(x,y,alpha=1,lambda=grid,family='binomial')
 plot(lasso.mod)
 lasso.bestlam <- lasso.cv$lambda.min

@@ -55,7 +55,7 @@ fit <- glm(I(wage>250)~poly(age,4),data=Wage,family=binomial)
 preds <- predict(fit, newdata=list(age=age.grid),se=TRUE)
 # calculation of CI
 pfit <- exp(preds$fit)/(1+exp(preds$fit))
-se.bands.logit <- cbind(preds$fit+2*preds$se.fit,preds$fit-2*preds$se.fit)
+xse.bands.logit <- cbind(preds$fit+2*preds$se.fit,preds$fit-2*preds$se.fit)
 se.bands <- exp(se.bands.logit)/(1+exp(se.bands.logit))
 preds <- predict(fit,newdata=list(age=age.grid),type="response",se=TRUE)
 

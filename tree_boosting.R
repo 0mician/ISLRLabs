@@ -9,8 +9,10 @@ boston.test <- Boston[-train,"medv"]
 
 boost.boston <- gbm(medv~., data=Boston[train,],
                     distribution="gaussian", n.trees=5000, interaction.depth=4)
+
 png("tree_boosting_influence.png")
 summary(boost.boston)
+dev.off()
 
 png("tree_boosting.png")
 par(mfrow=c(1,2))

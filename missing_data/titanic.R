@@ -62,3 +62,8 @@ summary(est)
 ################################
 # missing value indicator
 titanic.missing$r <- as.numeric(!is.na(titanic.missing$age))*as.numeric(!is.na(titanic.missing$sex))
+head(titanic.missing)
+titanic.ipw.glm <- glm(r~pclass+survived+sex, family=binomial, data=titanic.missing)
+summary(titanic.ipw.glm)
+titanic.results.ipw <- glm(r~pclass+survived+sex, family=binomial, data=titanic.missing, weights=titanic.missing$w)
+summary(titanic.results.ipw)

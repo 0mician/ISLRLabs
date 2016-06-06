@@ -1,5 +1,5 @@
 # libraries
-pkg=c("xtable", "ggplot2")
+pkg=c("xtable", "lme4", "arm", "pbkrtest", "lattice", "car", "ggplot2")
 
 install_or_load <- function(name){
   if (!is.element(name, installed.packages()[,1]))
@@ -10,7 +10,6 @@ install_or_load <- function(name){
 for (i in pkg){
   install_or_load(i)
 }
-
 
 setwd("/home/sid/Dev/ISLRLabs/mixed_models/")
 early.int1 <- read.table("../datasets/earlyint.txt", header=TRUE, sep=",")
@@ -80,3 +79,32 @@ par(mfrow=c(3,1))
 hist(lin.reg.coef2[,1], xlab="Intercept", col="lightblue", main="Histogram of individual intercept")
 hist(lin.reg.coef2[,2], xlab="Slope", col="lightblue", main="Histogram of individual slopes")
 hist(lin.reg.r.squared1, xlab="Rsq", col="lightblue", main="Histogram of individual Rsq")
+
+## plotting individual regression lines per group
+reg.coef=cbind(lin.reg.coef2, early.int1[early.int1$age==1,]$program)
+mean.int<-tapply(reg.coef[,1],reg.coef[,3],mean)
+mean.slope<-tapply(reg.coef[,2],reg.coef[,3],mean)
+par(mfrow=c(1,2))
+plot(age,cog,type="n",xlim=c(1,2),ylim=c(40,160),main="No intervention",
+     xlab="Age-1 (in years)",ylab="IQ",axes=F)
+axis(side=1,at=c(1,1.5,2),labels=c(1,1.5,2))
+axis(side=2,at=seq(40,160,20))
+box()
+for (i in 1:103){
+  if (reg.coef[i,3]==0){
+    curve(cbind(1,x)%*%reg.coef[i,1:2],add=T,col="gray")
+  }
+}
+curve(cbind(1,x)%*%c(mean.int[1],mean.slope[1]),add=T,lwd=2)
+plot(age,cog,type="n",xlim=c(1,2),ylim=c(40,160),main="Intervention", 
+     xlab="Age-1 (in years)",ylab="IQ",axes=F)
+axis(side=1,at=c(1,1.5,2),labels=c(1,1.5,2))
+axis(side=2,at=seq(40,160,20))
+box()
+for (i in 1:103){
+  if (reg.coef[i,3]==1){
+    curve(cbind(1,x)%*%reg.coef[i,1:2],add=T,col="gray")
+  }
+}
+curve(cbind(1,x)%*%c(mean.int[2],mean.slope[2]),add=T,lwd=2)
+
